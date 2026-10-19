@@ -1,0 +1,17 @@
+syntax = "proto3";
+option go_package = "grpc";
+package chat;
+
+service Chat{
+	rpc Send(SendRequest) returns (ReplyRequest);
+}
+
+message ReplyRequest { 
+	string text = 1;
+}
+
+message SendRequest {
+	string text = 1;
+	bytes raw = 2; 
+}
+
