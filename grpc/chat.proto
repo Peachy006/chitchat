@@ -1,17 +1,20 @@
 syntax = "proto3";
-option go_package = "grpc";
 package chat;
+option go_package = "chat/grpc;pb";
 
 service Chat{
-	rpc Send(SendRequest) returns (ReplyRequest);
+	rpc Connect(stream ChatMessage) returns (stream ChatBroadcast);
 }
 
-message ReplyRequest { 
-	string text = 1;
+message ChatMessage { 
+	string sender = 1;
+    string text = 2;
+	int64 time = 3;
 }
 
-message SendRequest {
-	string text = 1;
-	bytes raw = 2; 
+message ChatBroadcast {
+	string sender = 1;
+	string text = 2;
+	int64 time = 3;
 }
 
