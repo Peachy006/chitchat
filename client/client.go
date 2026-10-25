@@ -89,8 +89,9 @@ func main() {
 			fmt.Println("Max 128 characters allowed.")
 			continue
 		}
-		stream.Send(&pb.ChatMessage{Sender: *name, Text: text, Time: tick()})
-		log.Printf("Sent message from %s: %s", *name, text)
+		t := tick()
+		stream.Send(&pb.ChatMessage{Sender: *name, Text: text, Time: t})
+		log.Printf("Sent message from %s: %s at logical time %d", *name, text, t)
 	}
 
 	//Leave the chat
