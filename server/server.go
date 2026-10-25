@@ -17,15 +17,21 @@ type server struct {
 }
 
 func (s *server) broadcast(sender, text string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.clock++
 	msg := &pb.ChatBroadcast{Sender: sender, Text: text, Time: s.clock}
-	for _, ch := range s.clients {
+	for name, ch := range s.clients {
+		if name == sender {
+			continue
+		}
 		select {
 		case ch <- msg:
 		default:
+			log.Printf("Client %s's channel is full, dropping message", name)
 		}
 	}
-	log.Printf("Broadcasted message from %s: %s", sender, s.clock)
+	log.Printf("Broadcasted message from %s: %d", sender, s.clock)
 }
 
 func (s *server) Connect(stream pb.Chat_ConnectServer) error {
@@ -37,10 +43,11 @@ func (s *server) Connect(stream pb.Chat_ConnectServer) error {
 	ch := make(chan *pb.ChatBroadcast, 100)
 
 	s.mu.Lock()
-	s.clock = max(s.clock, first.Time+1)
+	s.clock = max(s.clock, first.Time) + 1
 	s.clients[sender] = ch
 	log.Printf("Client %s connected at logical time %d", sender, s.clock)
 	s.mu.Unlock()
+	s.broadcast(sender, "Client connected")
 
 	go func() {
 		for {
@@ -49,19 +56,21 @@ func (s *server) Connect(stream pb.Chat_ConnectServer) error {
 			if err != nil {
 				delete(s.clients, sender)
 				close(ch)
+				s.clock = s.clock + 1
 				log.Printf("Client %s disconnected at logical time %d", sender, s.clock)
+				s.broadcast(sender, "Client disconnected")
 				s.mu.Unlock()
 				return
 			}
-			s.clock = max(s.clock, msg.Time+1)
-			s.broadcast(sender, msg.Text)
+			s.clock = max(s.clock, msg.Time) + 1
 			s.mu.Unlock()
+			s.broadcast(sender, msg.Text)
 		}
 	}()
 
 	for msg := range ch {
 		stream.Send(msg)
-		log.Printf("Sent message to %s: %s", msg.Sender, msg.Text)
+		log.Printf("Sent message from %s: %s", msg.Sender, msg.Text)
 	}
 	return nil
 }

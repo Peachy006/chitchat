@@ -35,7 +35,7 @@ func update(received int64) int64 {
 }
 
 func main() {
-	name := flag.String("name", "", "your name")
+	name := flag.String("name", "NoNameUser", "your name")
 	addr := flag.String("addr", "localhost:9000", "server address")
 	flag.Parse()
 
@@ -72,9 +72,8 @@ func main() {
 				close(done)
 				return
 			}
-			t := update(msg.Time)
-			fmt.Printf("Received message from %s: %s at time %d\n", *name, msg.Text, t)
-			log.Printf("Received message from %s: %s at time %d", *name, msg.Text, t)
+			t := tick()
+			log.Printf("Received message from %s: %s at time %d", msg.Sender, msg.Text, t)
 		}
 	}()
 
@@ -90,8 +89,7 @@ func main() {
 			fmt.Println("Max 128 characters allowed.")
 			continue
 		}
-		t := tick()
-		stream.Send(&pb.ChatMessage{Sender: *name, Text: text, Time: t})
+		stream.Send(&pb.ChatMessage{Sender: *name, Text: text, Time: tick()})
 		log.Printf("Sent message from %s: %s", *name, text)
 	}
 
